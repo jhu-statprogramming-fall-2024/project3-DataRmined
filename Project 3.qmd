@@ -3,6 +3,13 @@ title: "Project 3"
 format: html
 ---
 
+```{r}
+library(DBI)
+library(RSQLite)
+library(nycflights13)
+library(ggplot2)
+```
+
 ## Part 1 
 
 In this part, you and your partner will use the `DBI` and `RSQLite` packages to write SQL queries, explore and summarize the data, visualize the data, and summarize your findings.
@@ -33,7 +40,19 @@ Using the data you picked, choose a question to investigate. For example, if you
 
         ```
 
+        ```{r}
+
+        ```
+
 4.  Visualize your data by creating a plot with `ggplot2`. For example, if using `nycflights13`, you could think about how to visualize delays by month, carrier, or weather conditions.
+
+    ```{r}
+
+    ```
+
+    ```{r}
+
+    ```
 
     ```{r}
 
