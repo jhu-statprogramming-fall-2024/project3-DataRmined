@@ -1,0 +1,62 @@
+---
+title: "Project 3"
+format: html
+---
+
+## Part 1 
+
+In this part, you and your partner will use the `DBI` and `RSQLite` packages to write SQL queries, explore and summarize the data, visualize the data, and summarize your findings.
+
+Using the data you picked, choose a question to investigate. For example, if you are using the `nycflights13` dataset, maybe you want to understand if there are certain days of the week that flights are more delayed than other days of the week. Describe what is the question you aim to answer with the data and what you want to visualize.
+
+1.  If it’s already a SQL database, read into R using the `DBI` and `RSQLite` packages. If it’s not already a SQL database, create a new SQL database and use the `dbWriteTable()` function to add at minimum three tables to the SQL database.
+
+    ```{r}
+
+    ```
+
+2.  Write three SQL queries using `dbGetQuery()` to **explore and summarize the data**. You must use at least five different SQL functions (e.g. `SELECT`, `GROUP BY`, `DISTINCT`, `SUM`, etc).
+
+    ```{r}
+
+    ```
+
+3.  Write two SQL queries to **create new features** from existing data. For example, if using `nycflights13`, you could think about how to
+
+    -   Bin departure times into time-of-day categories (e.g., morning, afternoon, evening).
+
+    -   Lag features like the previous day’s average delay by carrier, which can be helpful for predictions.
+
+    -   Merge additional weather data (such as hourly temperature, precipitation, etc., if available). e.g. this could be done using SQL joins.
+
+        ```{r}
+
+        ```
+
+4.  Visualize your data by creating a plot with `ggplot2`. For example, if using `nycflights13`, you could think about how to visualize delays by month, carrier, or weather conditions.
+
+    ```{r}
+
+    ```
+
+5.  Report your findings. Provide a paragraph summarizing your methods and key findings. Include any limitations or potential biases in your analysis. Be sure to comment and organize your code so is easy to understand what you are doing.
+
+## Part 2
+
+In this part, you and your partner will use use `caret` or `tidymodels` to train a predictive model for a task or outcome, perform model evaluation, and summarize your findings. For this part, you can use the data directly in R as standard dataframes or tibbles. You do not need to build the models In this section, you must do the following when building your prediction model:
+
+-   Split the data into training and test sets.
+
+-   Choose a machine learning model appropriate for the task (e.g. consider if it’s a binary or continuous outcome and choose an appropriate model). For example, if you are using the `nycflights13` dataset, you could could pick
+
+    -   Logistic Regression (if predicting delay as a binary outcome, e.g., delay/no delay).
+
+    -   Linear Regression (if predicting the length of delay in minutes).
+
+    -   Decision Trees or Random Forests (for both binary classification or regression).
+
+-   Train the model using `caret` or `tidymodels` in R using the training data.
+
+-   Assess the model performance both the training and test datasets using metrics like Accuracy or area under the curve (AUC) (if classification) or root mean squared error (RMSE) (if regression).
+
+Finally, report your findings. For example, if you are predicting flight delays, provide 1-2 practical recommendations for reducing delays. Broadly, provide a paragraph summarizing your methods and key findings. Include limitations or potential biases in training and evaluation your machine learning model. Be sure to comment and organize your code so is easy to understand what you are doing.
