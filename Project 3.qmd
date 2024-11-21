@@ -4,10 +4,12 @@ format: html
 ---
 
 ```{r}
+suppressPackageStartupMessages(library(caret))
 suppressPackageStartupMessages(library(DBI))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(nycflights13))
+suppressPackageStartupMessages(library(pROC))
 suppressPackageStartupMessages(library(RSQLite))
 suppressPackageStartupMessages(library(viridis))
 ```
@@ -51,7 +53,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # QUERY 1: The number of flights by airline and delays in NY in 2013 by season  
-
     query1 <- "
       SELECT 
         carrier AS airline,
@@ -73,7 +74,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # QUERY 2: The average number of departure delay minutes by airlines in NY in 2013
-
     query2 <- "
     SELECT 
         carrier AS airline,
@@ -90,7 +90,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # QUERY 3: Departure delay minutes by airline across seasons
-     
     query3 <- "
     SELECT 
         carrier AS airline,
@@ -121,7 +120,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
         ```{r}
         # QUERY 1: Binning departure times into time-of-day categories
-
         query_time_of_day <- "
           SELECT *,
                  CASE
@@ -144,7 +142,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
         ```{r}
         # QUERY 2: Creating a delay category based on departure delay
-
         query_delay_category <- "
           SELECT *,
                  CASE
@@ -169,7 +166,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # Results 1: The number of flights by airline and season
-
     query_result1$season <- factor(
       query_result1$season, 
       levels = c("1", "2", "3", "4"), 
@@ -198,7 +194,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # Results 2: Create a plot for average departure delay by airline
-
     ggplot(query_result2, aes(x = airline, y = avg_delay_minutes)) +
       geom_bar(stat = "identity", position = "dodge", fill = "darkslategray3") +
       labs(
@@ -219,7 +214,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # Results 3: Average delays for each airline across seasons
-
     query_result3$season <- factor(
       query_result3$season, 
       levels = c("1", "2", "3", "4"), 
@@ -247,7 +241,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # Query 1: Time-of-Day Categories
-
     flights_time_of_day$time_of_day <- factor(
       flights_time_of_day$time_of_day,
       levels = c("Early Morning", "Morning", "Afternoon", "Evening")
@@ -273,7 +266,6 @@ The output has been limited to display only the first 10 rows to improve readabi
 
     ```{r}
     # Query 2: Flight Delay Categories
-
     ggplot(flights_delay_category, aes(x = delay_category)) +
       geom_bar(fill = "mediumaquamarine") +
       labs(
@@ -320,18 +312,138 @@ The output has been limited to display only the first 10 rows to improve readabi
 
 In this part, you and your partner will use use `caret` or `tidymodels` to train a predictive model for a task or outcome, perform model evaluation, and summarize your findings. For this part, you can use the data directly in R as standard dataframes or tibbles. You do not need to build the models In this section, you must do the following when building your prediction model:
 
--   Split the data into training and test sets.
+**Research Question:** Can weather conditions predict departure delays for American Airlines (AA) from NYC in 2013?
 
--   Choose a machine learning model appropriate for the task (e.g. consider if it's a binary or continuous outcome and choose an appropriate model). For example, if you are using the `nycflights13` dataset, you could could pick
+**Data Set Up**
 
-    -   Logistic Regression (if predicting delay as a binary outcome, e.g., delay/no delay).
+```{r}
+data(flights)
+data(weather)
+```
 
-    -   Linear Regression (if predicting the length of delay in minutes).
+```{r}
+# Select flight details for American Airlines (AA)
+aa_flights <- flights %>%
+  filter(carrier == "AA") %>%
+  select(dep_delay, distance, month, day)
 
-    -   Decision Trees or Random Forests (for both binary classification or regression).
+# Select weather conditions from the dataset
+weather <- weather %>%
+  select(month, day, visib, precip, wind_speed)
 
--   Train the model using `caret` or `tidymodels` in R using the training data.
+# Calculate the average of weather conditions per day 
+weather_aggregated <- weather %>%
+  group_by(month, day) %>%
+  summarize(
+    visib = mean(visib, na.rm=TRUE), 
+    precip = mean(precip, na.rm=TRUE),
+    wind_speed = mean(wind_speed, na.rm=TRUE),
+    .groups = "drop"
+  )
+```
 
--   Assess the model performance both the training and test datasets using metrics like Accuracy or area under the curve (AUC) (if classification) or root mean squared error (RMSE) (if regression).
+::: callout-note
+## Note
 
-Finally, report your findings. For example, if you are predicting flight delays, provide 1-2 practical recommendations for reducing delays. Broadly, provide a paragraph summarizing your methods and key findings. Include limitations or potential biases in training and evaluation your machine learning model. Be sure to comment and organize your code so is easy to understand what you are doing.
+The average daily weather conditions were calculated since weather data was recorded at multiple time points throughout each day.
+:::
+
+```{r}
+# Merge flight details with weather conditions 
+aa_data <- aa_flights %>%
+  left_join(weather_aggregated, by = c("month", "day"))
+
+# Create two new variables (delay_status and season)
+aa_data <- aa_data %>%
+  mutate(
+    delay_status = ifelse(dep_delay <= 0, 0, 1), # 0 (no delay), 1 (delay)
+    season = case_when(
+      month %in% c(12, 1, 2) ~ 1, # Winter 
+      month %in% c(2, 3, 4) ~ 2, # Spring 
+      month %in% c(5, 6, 7) ~ 3, # Summer
+      month %in% c(8, 9, 10) ~ 4, # Fall 
+    )
+  )
+
+# Remove any rows with missing values 
+aa_data <- na.omit(aa_data)
+```
+
+1.  **Split the data into training and test sets.**
+
+    ```{r}
+    set.seed(100)
+
+    train <- createDataPartition(aa_data$delay_status, p = 0.8, list = FALSE)
+
+    train_data <- aa_data[train, ]
+    test_data <- aa_data[-train, ]
+
+    dim(train_data)  
+    dim(test_data) 
+    ```
+
+2.  **Choose a machine learning model appropriate for the task (e.g. consider if it's a binary or continuous outcome and choose an appropriate model). For example, if you are using the `nycflights13` dataset, you could could pick**
+
+    -   **Logistic Regression (if predicting delay as a binary outcome, e.g., delay/no delay).**
+
+    -   **Linear Regression (if predicting the length of delay in minutes).**
+
+    -   **Decision Trees or Random Forests (for both binary classification or regression).**
+
+        Since the outcome involves predicting whether an AA flight will be delayed or not, we are working with a binary classification task. Therefore, we selected a logistic regression model.
+
+        ```{r}
+        train_data$delay_status <- as.factor(train_data$delay_status)
+        test_data$delay_status <- as.factor(test_data$delay_status)
+        ```
+
+3.  **Train the model using `caret` or `tidymodels` in R using the training data.**
+
+    ```{r}
+    # Train a logistic regression model 
+    model <- train(
+      delay_status ~ distance + visib + precip + wind_speed + season, 
+      data = train_data, 
+      method = "glm",
+      family = "binomial",
+      trControl = trainControl(method = "cv", number = 5)
+    )
+
+    summary(model)
+    model$results
+    ```
+
+4.  **Assess the model performance both the training and test datasets using metrics like Accuracy or area under the curve (AUC) (if classification) or root mean squared error (RMSE) (if regression).**
+
+    ```{r}
+    # Evaluate the training dataset 
+    train_evaluate <- predict(model, newdata = train_data)
+
+    train_confusion_matrix <- confusionMatrix(train_evaluate, train_data$delay_status)
+    print(train_confusion_matrix)
+
+    # Calculate AUC for the training dataset
+    train_prob <- predict(model, newdata = train_data, type = "prob")[, 2]
+
+    train_roc <- roc(train_data$delay_status, train_prob)
+    train_auc <- auc(train_roc)
+    cat("Training AUC:", train_auc, "\n")
+    ```
+
+    ```{r}
+    # Evaluate the testing dataset 
+    test_evaluate <- predict(model, newdata = test_data)
+
+    test_confusion_matrix <- confusionMatrix(test_evaluate, test_data$delay_status)
+    print(test_confusion_matrix)
+
+    # Calculate AUC for the testing dataset
+    test_prob <- predict(model, newdata = test_data, type = "prob")[, 2]
+
+    test_roc <- roc(test_data$delay_status, test_prob)
+    test_auc <- auc(test_roc)
+    cat("Testing AUC:", test_auc, "\n")
+    ```
+
+5.  Finally, report your findings. For example, if you are predicting flight delays, provide 1-2 practical recommendations for reducing delays. Broadly, provide a paragraph summarizing your methods and key findings. Include limitations or potential biases in training and evaluation your machine learning model. Be sure to comment and organize your code so is easy to understand what you are doing.
