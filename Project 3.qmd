@@ -4,11 +4,12 @@ format: html
 ---
 
 ```{r}
-library(nycflights13)
-library(DBI)
-library(dplyr)
-library(RSQLite)
-library(ggplot2)
+suppressPackageStartupMessages(library(DBI))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(nycflights13))
+suppressPackageStartupMessages(library(RSQLite))
+suppressPackageStartupMessages(library(viridis))
 ```
 
 ## Part 1
@@ -17,15 +18,15 @@ In this part, you and your partner will use the `DBI` and `RSQLite` packages to 
 
 Using the data you picked, choose a question to investigate. For example, if you are using the `nycflights13` dataset, maybe you want to understand if there are certain days of the week that flights are more delayed than other days of the week. Describe what is the question you aim to answer with the data and what you want to visualize.
 
-1.  If it's already a SQL database, read into R using the `DBI` and `RSQLite` packages. If it's not already a SQL database, create a new SQL database and use the `dbWriteTable()` function to add at minimum three tables to the SQL database.
+1.  **If it's already a SQL database, read into R using the `DBI` and `RSQLite` packages. If it's not already a SQL database, create a new SQL database and use the `dbWriteTable()` function to add at minimum three tables to the SQL database.**
 
     ```{r}
     flight_data  <- dbConnect(RSQLite::SQLite(), "nycflights13.db")
 
     # Create SQLite database
-    dbWriteTable(flight_data, "flights", flights)
-    dbWriteTable(flight_data, "weather", weather)
-    dbWriteTable(flight_data, "airports", airports)
+    dbWriteTable(flight_data, "flights", flights, overwrite = TRUE)
+    dbWriteTable(flight_data, "weather", weather, overwrite = TRUE)
+    dbWriteTable(flight_data, "airports", airports, overwrite = TRUE)
 
     dbListTables(flight_data)
 
@@ -40,7 +41,13 @@ Using the data you picked, choose a question to investigate. For example, if you
     print(airports_columns)
     ```
 
-    Write three SQL queries using `dbGetQuery()` to **explore and summarize the data**. You must use at least five different SQL functions (e.g. `SELECT`, `GROUP BY`, `DISTINCT`, `SUM`, etc).
+::: callout-important
+## Important
+
+The output has been limited to display only the first 10 rows to improve readability. If you'd like to view the entire dataset, please remove `n = 10` from the end of each code block.
+:::
+
+2.  **Write three SQL queries using `dbGetQuery()` to explore and summarize the data. You must use at least five different SQL functions (e.g. `SELECT`, `GROUP BY`, `DISTINCT`, `SUM`, etc).**
 
     ```{r}
     # QUERY 1: The number of flights by airline and delays in NY in 2013 by season  
@@ -49,10 +56,10 @@ Using the data you picked, choose a question to investigate. For example, if you
       SELECT 
         carrier AS airline,
         CASE
-          WHEN month IN (12, 1, 2) THEN '1' # Winter
-          WHEN month IN (3, 4, 5) THEN '2' # Spring 
-          WHEN month IN (6, 7, 8) THEN '3' # Summer
-          WHEN month IN (9, 10, 11) THEN '4' # Fall
+          WHEN month IN (12, 1, 2) THEN '1' -- Winter
+          WHEN month IN (3, 4, 5) THEN '2' -- Spring 
+          WHEN month IN (6, 7, 8) THEN '3' -- Summer
+          WHEN month IN (9, 10, 11) THEN '4' -- Fall
         END AS season,
         COUNT(*) AS total_flights,
         SUM(CASE WHEN dep_delay > 0 THEN 1 ELSE 0 END) AS delayed_flights
@@ -61,8 +68,7 @@ Using the data you picked, choose a question to investigate. For example, if you
     "
 
     query_result1 <- dbGetQuery(flight_data, query1)
-    print(query_result1)
-
+    head(query_result1, n=10)
     ```
 
     ```{r}
@@ -79,16 +85,21 @@ Using the data you picked, choose a question to investigate. For example, if you
     "
 
     query_result2 <- dbGetQuery(flight_data, query2)
-    print(query_result2)
+    head(query_result2, n=10)
     ```
 
     ```{r}
-    # QUERY 3: Delays by airline across seasons
+    # QUERY 3: Departure delay minutes by airline across seasons
      
     query3 <- "
     SELECT 
         carrier AS airline,
-        season,
+        CASE
+          WHEN month IN (12, 1, 2) THEN '1' -- Winter
+          WHEN month IN (3, 4, 5) THEN '2' -- Spring 
+          WHEN month IN (6, 7, 8) THEN '3' -- Summer
+          WHEN month IN (9, 10, 11) THEN '4' -- Fall
+        END AS season,
         AVG(dep_delay) AS avg_delay_minutes
     FROM flights
     WHERE dep_delay IS NOT NULL
@@ -97,22 +108,21 @@ Using the data you picked, choose a question to investigate. For example, if you
     "
 
     query_result3 <- dbGetQuery(flight_data, query3)
-    print(query_result3)
-
+    head(query_result3, n=10)
     ```
 
-    Write two SQL queries to **create new features** from existing data. For example, if using `nycflights13`, you could think about how to
+3.  **Write two SQL queries to create new features from existing data. For example, if using `nycflights13`, you could think about how to**
 
-    -   Bin departure times into time-of-day categories (e.g., morning, afternoon, evening).
+    -   **Bin departure times into time-of-day categories (e.g., morning, afternoon, evening).**
 
-    -   Lag features like the previous day's average delay by carrier, which can be helpful for predictions.
+    -   **Lag features like the previous day's average delay by carrier, which can be helpful for predictions.**
 
-    -   Merge additional weather data (such as hourly temperature, precipitation, etc., if available). e.g. this could be done using SQL joins.
+    -   **Merge additional weather data (such as hourly temperature, precipitation, etc., if available). e.g. this could be done using SQL joins.**
 
         ```{r}
-        # QUERY 1: Binning Departure Times into Time-of-Day Categories
+        # QUERY 1: Binning departure times into time-of-day categories
 
-        query1_time_of_day <- "
+        query_time_of_day <- "
           SELECT *,
                  CASE
                    WHEN dep_time BETWEEN 0 AND 600 THEN 'Early Morning'
@@ -123,15 +133,17 @@ Using the data you picked, choose a question to investigate. For example, if you
                  END AS time_of_day
           FROM flights
         "
-        flights_time_of_day <- dbGetQuery(flight_data, query1_time_of_day)
+        flights_time_of_day <- dbGetQuery(flight_data, query_time_of_day)
 
-        flights_time_of_day_clean <- flights_time_of_day %>% filter(complete.cases(.))
-        print(flights_time_of_day)
+        flights_time_of_day <- flights_time_of_day %>% 
+          filter(complete.cases(.)) %>%
+          select(dep_delay, carrier, time_of_day)
 
+        head(flights_time_of_day, n=10)
         ```
 
         ```{r}
-        # QUERY 2: Creating a Delay Category Based on Departure Delay
+        # QUERY 2: Creating a delay category based on departure delay
 
         query_delay_category <- "
           SELECT *,
@@ -146,63 +158,78 @@ Using the data you picked, choose a question to investigate. For example, if you
 
         flights_delay_category <- dbGetQuery(flight_data, query_delay_category)
 
-        # Remove rows with NA values
-        flights_delay_category_clean <- flights_delay_category %>%
-          filter(complete.cases(.))  # Removes rows with any NA values
+        flights_delay_category <- flights_delay_category %>%
+          filter(complete.cases(.)) %>%
+          select(dep_delay, carrier, delay_category)
 
-        # Print the cleaned data
-        print(flights_delay_category_clean)
-
+        head(flights_delay_category, n=10)
         ```
 
-    Visualize your data by creating a plot with `ggplot2`. For example, if using `nycflights13`, you could think about how to visualize delays by month, carrier, or weather conditions.
+4.  **Visualize your data by creating a plot with `ggplot2`. For example, if using `nycflights13`, you could think about how to visualize delays by month, carrier, or weather conditions.**
 
     ```{r}
-    #Results1: 'flights_by_airline_and_season'
-    ##Create a bar plot to show the number of flights by airline and season
+    # Results 1: The number of flights by airline and season
 
-    ggplot(result1, aes(x = airline, y = total_flights, fill = season)) +
+    query_result1$season <- factor(
+      query_result1$season, 
+      levels = c("1", "2", "3", "4"), 
+      labels = c("Winter", "Spring", "Summer", "Fall")
+    )
+
+    ggplot(query_result1, aes(x = airline, y = total_flights, fill = season)) +
       geom_bar(stat = "identity", position = "dodge") +
       labs(
         title = "Number of Flights by Airline and Season",
-        subtitle = "New York in 2013",
+        subtitle = "Data based on New York in 2013",
         caption = "Graphed by Amanda Kim & Da Yea Song",
         x = "Airline",
         y = "Number of Flights",
         fill = "Season"
       ) +
+      scale_fill_viridis_d(option = "D") +
       theme_minimal() +
       theme(
-        axis.text.x = element_text(angle = 45, hjust = 1) )
-
-    ```
-
-    ```{r}
-    #Result2: Create a plot for average departure delay by airline
-    ggplot(result2, aes(x = airline, y = avg_delay_minutes)) +
-      geom_bar(stat = "identity", position = "dodge") +
-      labs(
-        title = "Average Departure Delay by Airline",
-        subtitle = "New York in 2013",
-        caption = "Graphed by Amanda Kim & Da Yea Song",
-        x = "Airline",
-        y = "Average Departure Delay (minutes)",
-        fill = "Season"
-      ) +
-      theme_minimal() +
-      theme(
-        axis.text.x = element_text(angle = 45, hjust = 1)
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold")
       )
     ```
 
     ```{r}
-    #Result3: Average delays for each airline across seasons
-    ##Create a ggplot for average departure delays by airline and season
+    # Results 2: Create a plot for average departure delay by airline
 
-    ggplot(result3, aes(x = airline, y = avg_delay_minutes, fill = season)) +
+    ggplot(query_result2, aes(x = airline, y = avg_delay_minutes)) +
+      geom_bar(stat = "identity", position = "dodge", fill = "darkslategray3") +
+      labs(
+        title = "Average Departure Delay by Airline",
+        subtitle = "Data based on New York in 2013",
+        caption = "Graphed by Amanda Kim & Da Yea Song",
+        x = "Airline",
+        y = "Average Departure Delay (minutes)"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold")
+      )
+    ```
+
+    ```{r}
+    # Results 3: Average delays for each airline across seasons
+
+    query_result3$season <- factor(
+      query_result3$season, 
+      levels = c("1", "2", "3", "4"), 
+      labels = c("Winter", "Spring", "Summer", "Fall")
+    )
+
+    ggplot(query_result3, aes(x = airline, y = avg_delay_minutes, fill = season)) +
       geom_bar(stat = "identity", position = "dodge", alpha = 0.7) +    labs(
         title = "Average Departure Delay by Airline Across Seasons",
-        subtitle = "New York in 2013",
+        subtitle = "Data based on New York in 2013",
         caption = "Graphed by Amanda Kim & Da Yea Song",
         x = "Airline",
         y = "Average Departure Delay (Minutes)",
@@ -210,80 +237,84 @@ Using the data you picked, choose a question to investigate. For example, if you
       ) +
       theme_minimal() +
       theme(
-        axis.text.x = element_text(angle = 45, hjust = 1),  
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold"),
         legend.position = "bottom"
       )
     ```
 
     ```{r}
-    #Query1: 'flights_with_time_of_day'
-    ##Create a bar plot for Time-of-Day Categories
+    # Query 1: Time-of-Day Categories
 
-    ggplot(flights_with_time_of_day, aes(x = time_of_day)) +
-      geom_bar(fill = "skyblue", color = "black") +
+    flights_time_of_day$time_of_day <- factor(
+      flights_time_of_day$time_of_day,
+      levels = c("Early Morning", "Morning", "Afternoon", "Evening")
+    )
+
+    ggplot(flights_time_of_day, aes(x = time_of_day)) +
+      geom_bar(fill = "lightsalmon") +
       labs(
         title = "Number of Flights by Time of Day",
-        subtitle = "In NYC in 2013",
+        subtitle = "Data based on New York in 2013",
         caption = "Graphed by Amanda Kim and Da Yea Song",
         x = "Time of Day",
         y = "Number of Flights"
       ) +
-      theme_minimal()
-
+      theme_minimal() + 
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold")
+      )
     ```
 
     ```{r}
-    #Query2: Assuming the query results are stored in 'flights_with_delay_category'
+    # Query 2: Flight Delay Categories
 
-    ggplot(flights_with_delay_category, aes(x = delay_category)) +
-      geom_bar(fill = "lightgreen", color = "black") +
+    ggplot(flights_delay_category, aes(x = delay_category)) +
+      geom_bar(fill = "mediumaquamarine") +
       labs(
         title = "Number of Flights by Delay Category",
+        subtitle = "Data based on New York in 2013",
+        caption = "Graphed by Amanda Kim and Da Yea Song",
         x = "Delay Category",
         y = "Number of Flights"
       ) +
-      theme_minimal()
+      theme_minimal() + 
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold")
+      )
     ```
 
-    Report your findings. Provide a paragraph summarizing your methods and key findings. Include any limitations or potential biases in your analysis. Be sure to comment and organize your code so is easy to understand what you are doing.
+5.  **Report your findings. Provide a paragraph summarizing your methods and key findings. Include any limitations or potential biases in your analysis. Be sure to comment and organize your code so is easy to understand what you are doing.**
 
-Across all airlines, it seems like season #3 (\"Summer\") is, on average, the highest in departure delay (in minutes) compared to other seasons. Comparing all 16 airlines, F9, EV, YV have the highest average departure delays. US, HA, and AS airlines have the lowest departure delays (in minutes). When comparing all airlines across seasons, OO airline had the largest average departure delay during the Winter and Spring (close to 60-70 minutes). It\'s important to highlight that HA airlines may have had relatively high average departure delays during the winter, in the Spring and Fall, HA airlines have had a negative average departure delay, signifying that the airline is departing early. 
+    Across all airlines, it seems like season #3 ("Summer") is, on average, the highest in departure delay (in minutes) compared to other seasons. Comparing all 16 airlines, F9, EV, YV have the highest average departure delays. US, HA, and AS airlines have the lowest departure delays (in minutes). When comparing all airlines across seasons, OO airline had the largest average departure delay during the Winter and Spring (close to 60-70 minutes). It's important to highlight that HA airlines may have had relatively high average departure delays during the winter, in the Spring and Fall, HA airlines have had a negative average departure delay, signifying that the airline is departing early. 
 
-[Limitations in Analysis:]{.underline} 
+    [**Limitations in Analysis:**]{.underline} 
 
-**Dataset Scope**: The dataset only includes flights departing from New York City airports, which means that our analysis is not representative of airlines\' performance nationwide or globally.
+-   **Dataset Scope**: The dataset only includes flights departing from NYC airports, which means that our analysis is not representative of airlines' performance nationwide or globally.
 
-**Sample Size**: Airlines with fewer flights in the dataset might have averages that are not as reliable or statistically significant compared to airlines with a larger number of flights.
+-   **Sample Size**: Airlines with fewer flights in the dataset might have averages that are not as reliable or statistically significant compared to airlines with a larger number of flights.
 
-**External Factors to Consider**: Delays may not be entirely within the airline's control. Factors like airport congestion, air traffic control delays, or weather at origin/destination airports can all contribute to departure delays.
+-   **External Factors to Consider**: Delays may not be entirely within the airline's control. Factors like airport congestion, air traffic control delays, or weather at origin/destination airports can all contribute to departure delays.
 
-[Potential Biases:]{.underline}
+    [**Potential Biases:**]{.underline}
 
-Airport-Specific Bias: Since the dataset focuses only on NYC airports, delays may be influenced more by NYC airport operations, infrastructure, or congestion, rather than the airlines themselves.
+-   **Airport-Specific Bias:** Since the dataset focuses only on NYC airports, delays may be influenced more by NYC airport operations, infrastructure, or congestion, rather than the airlines themselves.
 
-Weather Bias: NYC airports are heavily affected by winter weather, potentially biasing results for airlines with many winter flights departing from NYC. 
+-   **Weather Bias**: NYC airports are heavily affected by winter weather, potentially biasing results for airlines with many winter flights departing from NYC. 
 
-Excluded Flights: Flights canceled or diverted due to extreme weather or other factors are excluded from delay calculations, potentially underestimating the operational challenges faced by certain airlines or in certain seasons.
+-   **Excluded Flights**: Flights canceled or diverted due to extreme weather or other factors are excluded from delay calculations, potentially underestimating the operational challenges faced by certain airlines or in certain seasons.
 
-**Data Cleaning**:
+***Data cleaning*****:** <br> - `dbWriteTable()` used to write data from R into a table in a database <br> - `SELECT()` specifies which columns of data we want to retrieve from a database table <br> - `GROUP BY` used to group rows that have the same values in specified columns into summary rows <br> - `ORDER BY` sorts the result set by one or more columns in ascending (`ASC`) or descending (`DESC`) order. <br> - `SUM` calculates the total (sum) of a numeric column <br> - `CASE` implements conditional logic within a query, similar to an `IF` or `SWITCH` statement in programming <br> - `COUNT` counts the number of rows that match a condition, or counts non-NULL values in a column <br>
 
-dbWriteTable(): Used to write data from R into a table in a database
-
-SELECT: Specifies which columns of data we want to retrieve from a database table
-
-GROUP BY: Used to group rows that have the same values in specified columns into summary rows.
-
-ORDER BY: Sorts the result set by one or more columns in ascending (`ASC`) or descending (`DESC`) order.
-
-SUM: Calculates the total (sum) of a numeric column
-
-CASE: Implements conditional logic within a query, similar to an `IF` or `SWITCH` statement in programming.
-
-COUNT: Counts the number of rows that match a condition, or counts non-NULL values in a column.
-
-**Visualization**:
-
-geom_bar(): to plot the 5 plots looking at average minutes delayed across seasons and by airline
+***Visualization*****:** <br> - `geom_bar()` to plot the 5 plots looking at average minutes delayed across seasons and by airline
 
 ## Part 2
 
