@@ -3,6 +3,8 @@ title: "Project 3"
 format: html
 ---
 
+**Completed by**: Amanda Kim (akim148) and Da Yea Song (dsong13)
+
 ```{r}
 suppressPackageStartupMessages(library(caret))
 suppressPackageStartupMessages(library(DBI))
