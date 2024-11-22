@@ -458,9 +458,8 @@ aa_data <- na.omit(aa_data)
 
     [Limitations or Potential biases:]{.underline}
 
-```{=html}
 <!-- -->
-```
+
 1.  **Sample Bias**: The model relies on the **2013 NYC flight dataset**, which does not reflect current patterns or conditions, especially with changes in airline operations, technology, and infrastructure during the last decade.
 
 2.  **Other Variables to Add/Consider**: The data did not include additional factors, such as staffing levels and air traffic control delays, which may limit the model's predictive accuracy. To improve the model's AUC/predictive accuracy, we think it's important that we consider and add additional variables into the model.
@@ -469,4 +468,4 @@ aa_data <- na.omit(aa_data)
 
 ***Data cleaning*****:** <br> - `filter()` to select data from AA <br> - `select()` to select specific variables of interest <br> - `group_by()` to group weather data by month and day <br> - `summarize` to calculate the mean measurements for the weather variables <br> - `left_join()` to merge flight and weather datasets <br> - `mutate()` to create new variables <br> <br>
 
-***Data training*****:** <br> - `createDataPartition` to split the data into training and test sets <br> `train()` to train the model<br> -`predict()` to evaluate the model<br> -`roc` to calculate the area under the curve
+***Data training*****:** <br> - `createDataPartition` to split the data into training and test sets <br> -`train()` to train the model<br> -`predict()` to evaluate the model<br> -`roc` to calculate the area under the curve
