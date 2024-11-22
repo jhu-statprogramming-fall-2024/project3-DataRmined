@@ -446,4 +446,16 @@ aa_data <- na.omit(aa_data)
     cat("Testing AUC:", test_auc, "\n")
     ```
 
-5.  Finally, report your findings. For example, if you are predicting flight delays, provide 1-2 practical recommendations for reducing delays. Broadly, provide a paragraph summarizing your methods and key findings. Include limitations or potential biases in training and evaluation your machine learning model. Be sure to comment and organize your code so is easy to understand what you are doing.
+5.  **Finally, report your findings. For example, if you are predicting flight delays, provide 1-2 practical recommendations for reducing delays. Broadly, provide a paragraph summarizing your methods and key findings. Include limitations or potential biases in training and evaluation your machine learning model. Be sure to comment and organize your code so is easy to understand what you are doing.**
+
+    NYC flight data from 2013 was used to predict the flight delay status for American Airlines (AA). Various weather conditions, along with flight distance and season, were selected as predictor variables for delay status. The data was split into training and testing datasets, and the model was trained using cross-validation. Given the binary nature of the outcome (delay vs. no delay), a logistic regression model was employed.
+
+    Using the average measurements of visibility, precipitation, wind speed, flight distance, and season, the model achieved an accuracy of 67.8% on the training dataset, with a sensitivity of 98.3% and a specificity of 3.6%. On the testing dataset, the model achieved an accuracy of 67.2%, a sensitivity of 98.3%, and a specificity of 4.1%. The area under the curve (AUC) for the training and testing datasets was 59.1 and 59.0, respectively, suggesting that the model's ability to predict the delay status of AA flights is only slightly better than random guessing.
+
+    **Practical recommendations**:
+
+    **Limitations or Potential biases**:
+
+***Data cleaning*****:** <br> - `filter()` to select data from AA <br> - `select()` to select specific variables of interest <br> - `group_by()` to group weather data by month and day <br> - `summarize` to calculate the mean measurements for the weather variables <br> - `left_join()` to merge flight and weather datasets <br> - `mutate()` to create new variables <br> <br>
+
+***Data training*****:** <br> - `createDataPartition` to split the data into training and test sets <br> `train()` to train the model<br> -`predict()` to evaluate the model<br> -`roc` to calculate the area under the curve
