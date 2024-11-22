@@ -452,9 +452,20 @@ aa_data <- na.omit(aa_data)
 
     Using the average measurements of visibility, precipitation, wind speed, flight distance, and season, the model achieved an accuracy of 67.8% on the training dataset, with a sensitivity of 98.3% and a specificity of 3.6%. On the testing dataset, the model achieved an accuracy of 67.2%, a sensitivity of 98.3%, and a specificity of 4.1%. The area under the curve (AUC) for the training and testing datasets was 59.1 and 59.0, respectively, suggesting that the model's ability to predict the delay status of AA flights is only slightly better than random guessing.
 
-    **Practical recommendations**:
+    [Recommendations Based on Findings:]{.underline}
 
-    **Limitations or Potential biases**:
+    **Weather Preparedness**: During winter months, AA should improve de-icing operations and staff scheduling to minimize weather-related delays and staff shortages/call outs. Airlines/airports should also look into more advanced weather-monitoring technologies to optimize flight schedules during adverse conditions.
+
+    [Limitations or Potential biases:]{.underline}
+
+```{=html}
+<!-- -->
+```
+1.  **Sample Bias**: The model relies on the **2013 NYC flight dataset**, which does not reflect current patterns or conditions, especially with changes in airline operations, technology, and infrastructure during the last decade.
+
+2.  **Other Variables to Add/Consider**: The data did not include additional factors, such as staffing levels and air traffic control delays, which may limit the model's predictive accuracy. To improve the model's AUC/predictive accuracy, we think it's important that we consider and add additional variables into the model.
+
+3.  **Class Imbalance**: If delayed flights are underrepresented in the data, the model might not be able to accurately predict delays, which would ultimately skew results toward the majority class (on-time flights). Looking at part 1, we can see that the average departure delay for AA is under 10 minutes. If the number of delayed flights are "minimal" compared to "on time" flights, than the results might skew towards "on-time" flights, ultimately, affecting our model's ability to better predict departure delays.
 
 ***Data cleaning*****:** <br> - `filter()` to select data from AA <br> - `select()` to select specific variables of interest <br> - `group_by()` to group weather data by month and day <br> - `summarize` to calculate the mean measurements for the weather variables <br> - `left_join()` to merge flight and weather datasets <br> - `mutate()` to create new variables <br> <br>
 
